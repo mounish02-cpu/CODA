@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CODA</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="header">
+    <img src="/static/logo.png" class="logo">
+    <div>
+        <h1>CODA</h1>
+        <p>Cross-platform Observation and Detection Assistant</p>
+    </div>
+</div>
+
+<div class="container">
+    <textarea id="inputText" placeholder="Enter news or statement here..."></textarea>
+    <button onclick="analyze()">Analyze</button>
+
+    <div id="result" style="display:none;">
+        <div class="verdict-block" id="verdictBlock">
+            <h2 id="verdict"></h2>
+            <p>Confidence: <span id="confidence"></span>%</p>
+        </div>
+
+        <div class="card">
+            <h3>⚠ Warnings & Indicators</h3>
+            <ul id="warnings"></ul>
+        </div>
+
+        <div class="card">
+            <h3>🌍 Global News Sources</h3>
+            <ul id="newsList"></ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    function analyze() {
+
+        const text = document.getElementById("inputText").value;
+
+        fetch("/analyze", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({text: text})
+        })
+            .then(res => res.json())
+            .then(data => {
+
+                document.getElementById("result").style.display = "block";
+
+                document.getElementById("verdict").innerText = data.verdict;
+                document.getElementById("confidence").innerText = data.confidence;
+
+                const block = document.getElementById("verdictBlock");
+                block.className = "verdict-block";
+
+                if(data.verdict === "High Risk") {
+                    block.classList.add("red");
+                } else if(data.verdict === "Warning") {
+                    block.classList.add("yellow");
+                } else {
+                    block.classList.add("green");
+                }
+
+                // warnings
+                const warnList = document.getElementById("warnings");
+                warnList.innerHTML = "";
+                data.warnings.forEach(w => {
+                    const li = document.createElement("li");
+                    li.innerText = w;
+                    warnList.appendChild(li);
+                });
+
+                // news
+                const newsList = document.getElementById("newsList");
+                newsList.innerHTML = "";
+
+                if(data.news.length > 0){
+                    data.news.forEach(article => {
+                        const li = document.createElement("li");
+                        li.innerHTML = `<a href="${article.url}" target="_blank">${article.title}</a>`;
+                        newsList.appendChild(li);
+                    });
+                } else {
+                    newsList.innerHTML = "<li>No exact matching global news found.</li>";
+                }
+
+            });
+    }
+</script>
+
+</body>
+</html>
